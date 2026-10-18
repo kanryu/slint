@@ -1,10 +1,77 @@
 # SlintCFlat Hike/Go Binding
 
-This module provides Go bindings for the SlintCFlat API located in
-`deps/slint-cflat-windows`, using Hike's `cfunc` and `.syso` generation. The
-binding API does not expose cgo; the native packaging step uses Go's external
-link mode when it must carry a Rust static archive and Windows system
-libraries.
+## What is Slint?
+
+Slint is a modern, general-purpose GUI framework for building user interfaces
+that run on desktop, mobile, web, and embedded platforms. It is implemented in
+Rust and is designed to provide a native user experience across operating
+systems and processor architectures while keeping the UI description concise
+and declarative.
+
+For the official project information, visit the [Slint website](https://slint.dev)
+and the [official Slint Git repository](https://github.com/slint-ui/slint).
+
+Instead of constructing every widget from ordinary application code, you
+describe windows, controls, layout, properties, and bindings in Slint's own
+markup language. A `.slint` file can look like this:
+
+```slint
+export component HelloWindow inherits Window {
+    width: 400px;
+    height: 240px;
+
+    Text {
+        text: "Hello from Slint";
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+```
+
+Slint keeps the UI description separate from the application's business logic.
+The framework can compile Slint markup ahead of time, optimize its property
+expressions, and use configurable rendering backends. It also provides an
+interpreter, which is the mode used by this binding: the application supplies
+the Slint source at startup and the Slint runtime creates the UI from it.
+
+For Hike language programs, this project provides the binding needed to use
+that runtime. The binding does not replace the Slint language. Instead, it
+helps an application collect multiple `.slint` files,
+combine them into one deterministic source file, embed that source in the
+executable as a Go string, and pass it to `slint.New` when the application
+starts.
+
+The Hike compiler is a build-time tool in this architecture. It generates the
+native `.syso` objects, Go declarations, and assembly stubs required by the
+binding; it is not a runtime dependency that changes what Slint is or how the
+application's UI is described.
+
+The typical flow is:
+
+```text
+individual .slint files
+        │
+        ├─ slint-bundler
+        ▼
+one bundled .slint source
+        │
+        ├─ go:embed
+        ▼
+embedded string in the executable
+        │
+        └─ slint.New(source)
+        ▼
+Slint interpreter and native window
+```
+
+This makes it possible to organize a larger UI into reusable pages and
+components while still shipping one self-contained Hike/Go application.
+
+This module provides a Hike language binding for the SlintCFlat API located in
+`deps/slint-cflat-windows`. Its native bridge is implemented with Hike
+`cfunc` declarations and generated `.syso` objects. The binding API does not
+expose cgo; the native packaging step uses Go's external link mode when it must
+carry a Rust static archive and Windows system libraries.
 
 The public API is in the root package, while the Hike bridge for the SlintCFlat
 ABI is in `internal/cflat`. The Hike source is
@@ -123,8 +190,18 @@ packaging. The Makefile invokes `hikepack syso` for each supported target and
 therefore should not repeat the old `clang -r <hike-object> <library>.a`
 step.
 
-The official `slint-bundler` command, which combines Slint sources into one
-file, is a Go program. Build it with:
+For Go programmers using this binding, the project includes SlintBinder, the
+`slint-bundler` command. Slint UI is often easier to maintain as multiple files
+under a `ui` directory: a router, a window component, reusable widgets, and
+page components. SlintBinder reads that directory, resolves the imports between
+the files, and writes one deterministic `.slint` source file.
+
+The application can then embed the generated file and give its contents to the
+Slint interpreter at startup. This keeps the UI organized as a normal folder
+tree during development while allowing the final Go application to carry one
+self-contained Slint source string.
+
+The SlintBinder command is implemented in Go. Build it with:
 
 ```text
 make slint-bundler
