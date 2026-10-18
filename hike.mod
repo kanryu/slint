@@ -39,4 +39,15 @@ package ./internal/cflat {
         link: "-lmingwex"
         link: "-lmingw32"
     }
+    target linux {
+        hike-object: "none"
+        link: "deps/slint-cflat-linux-amd64/libslint_cflat.a"
+        link: "-Wl,-u,slint_c_create"
+        link: "-ldl"
+        link: "-lpthread"
+        link: "-lm"
+        link: "-lrt"
+        link: "-lutil"
+        link: "-lfontconfig"
+    }
 }

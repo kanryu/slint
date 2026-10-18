@@ -1,4 +1,4 @@
-//go:build windows
+//go:build windows || (linux && amd64)
 
 // Package slint provides a cgo-free Go binding for SlintCFlat.
 package slint

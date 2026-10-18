@@ -1,10 +1,10 @@
-//go:build !windows
+//go:build !windows && (!linux || !amd64)
 
 package slint
 
 import "errors"
 
-var errUnsupported = errors.New("slint: cgo-free SlintCFlat binding is only generated for windows")
+var errUnsupported = errors.New("slint: cgo-free SlintCFlat binding is not generated for this platform")
 
 type Context struct{}
 type Value struct{}

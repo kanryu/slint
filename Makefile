@@ -1,4 +1,4 @@
-# SlintCFlat/Hike .syso build.
+# SlintCFlat/Hike native binding build.
 # The default `all` target follows the host OS. Linux additionally emits the
 # ARM64 and ARM32 variants.
 
@@ -15,10 +15,11 @@ HIKEPACK   ?= hikepack
 BUNDLER_OUT ?= bin/slint-bundler$(if $(filter Windows_NT,$(OS)),.exe,)
 
 SLINT_LIB_windows_amd64 ?= deps/slint-cflat-windows/libslint_cflat.a
-SLINT_LIB_linux_amd64   ?= deps/slint-cflat-linux/libslint_cflat.a
+SLINT_LIB_linux_amd64   ?= deps/slint-cflat-linux-amd64/libslint_cflat.a
 SLINT_LIB_linux_arm64   ?= deps/slint-cflat-linux-arm64/libslint_cflat.a
 SLINT_LIB_linux_arm32   ?= deps/slint-cflat-linux-arm32/libslint_cflat.a
 SLINT_LIB_darwin_arm64  ?= deps/slint-cflat-darwin/libslint_cflat.a
+SLINT_SYSo_linux_amd64  := internal/cflat_native/cflat_linux_amd64.syso
 
 ifeq ($(OS),Windows_NT)
 HOST_GOOS := windows
@@ -86,8 +87,12 @@ endef
 syso-windows-amd64:
 	$(call build_syso,windows,internal/cflat/cflat_hike_windows_amd64.syso,x86_64-w64-windows-gnu,$(SLINT_LIB_windows_amd64),internal/cflat/cflat_windows_amd64.syso)
 
-syso-linux-amd64:
-	$(call build_syso,linux,internal/cflat/cflat_hike_linux_amd64.syso,x86_64-unknown-linux-gnu,$(SLINT_LIB_linux_amd64),internal/cflat/cflat_linux_amd64.syso)
+$(SLINT_SYSo_linux_amd64): $(SLINT_LIB_linux_amd64)
+	mkdir -p "$(dir $(SLINT_SYSo_linux_amd64))"
+	cp "$(SLINT_LIB_linux_amd64)" "$(SLINT_SYSo_linux_amd64)"
+
+syso-linux-amd64: $(SLINT_SYSo_linux_amd64)
+	cd "$(BRIDGE_DIR)" && $(HIKEC) go
 
 syso-linux-arm64:
 	$(call build_syso,linux-arm64,internal/cflat/cflat_hike_linux_arm64.syso,aarch64-unknown-linux-gnu,$(SLINT_LIB_linux_arm64),internal/cflat/cflat_linux_arm64.syso)

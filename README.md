@@ -67,11 +67,12 @@ Slint interpreter and native window
 This makes it possible to organize a larger UI into reusable pages and
 components while still shipping one self-contained Hike/Go application.
 
-This module provides a Hike language binding for the SlintCFlat API located in
-`deps/slint-cflat-windows`. Its native bridge is implemented with Hike
-`cfunc` declarations and generated `.syso` objects. The binding API does not
-expose cgo; the native packaging step uses Go's external link mode when it must
-carry a Rust static archive and Windows system libraries.
+This module provides a Hike language binding for the SlintCFlat API. Its native
+bridge is implemented with Hike `cfunc` declarations and generated Go
+declarations/assembly stubs. The binding API does not expose cgo. Windows
+amd64 packages its Rust static archive as a `.syso`; Linux amd64 links
+`deps/slint-cflat-linux-amd64/libslint_cflat.a` copied into its Linux
+`internal/cflat_native` package under the platform `.syso` name.
 
 The public API is in the root package, while the Hike bridge for the SlintCFlat
 ABI is in `internal/cflat`. The Hike source is
@@ -95,20 +96,63 @@ the actual files.
 make
 ```
 
-This generates `cflat_windows_amd64.syso` on Windows;
-`cflat_linux_amd64.syso`, `cflat_linux_arm64.syso`, and
-`cflat_linux_arm32.syso` on Linux; and `cflat_darwin_arm64.syso` on macOS.
+This generates `cflat_windows_amd64.syso` on Windows. Linux amd64 copies its
+archive to
+`internal/cflat_native/cflat_linux_amd64.syso`
+and runs Hike's Go backend.
 
 You can also select a target explicitly:
 
 ```text
 make syso-windows-amd64
+make syso-linux-amd64
 make syso-linux-arm64
 make syso-linux-arm32
 make syso-darwin-arm64
 ```
 
-Override a target's static library with `SLINT_LIB_<target>`.
+Override a Hikepack-backed target's static library with `SLINT_LIB_<target>`.
+
+On Linux amd64, build the Hello example with `make -C examples/hello`. The
+Makefile copies the release archive into `internal/cflat_native` under its
+platform `.syso` name, runs `hikec go` to generate the bridge, and builds the
+executable. The corresponding `target linux` entry in `hike.mod` records the
+release archive and Linux system libraries. A working `hikec` installation is
+required.
+
+## Building and running on Linux amd64
+
+Install Go, Git LFS, GNU Make, Hike (`hikec`), and a C compiler/linker supported
+by cgo. The build also needs the development files for the native libraries
+listed in `hike.mod`, including Fontconfig. Fetch the native archive from Git
+LFS and build the Hello example:
+
+```sh
+git lfs install
+git lfs pull
+make -C examples/hello build
+make -C examples/hello run
+```
+
+The native library is packaged from
+`deps/slint-cflat-linux-amd64/libslint_cflat.a` by the `syso-linux-amd64`
+target. The Hello Makefile invokes this target automatically before building.
+
+Running the application requires a graphical desktop session with a supported
+X11 or Wayland display backend, as well as the shared libraries required by
+Slint. In particular, `libxkbcommon-x11.so.0` is needed at runtime. If the
+application fails to start because a shared library is missing, inspect its
+dependencies with:
+
+```sh
+ldd examples/hello/hello
+```
+
+Install the missing runtime packages using your distribution's package manager.
+For example, on Debian or Ubuntu, `libxkbcommon-x11-0` provides
+`libxkbcommon-x11.so.0`; the Fontconfig runtime library is also required.
+Runtime package names vary by distribution. Linux amd64 is the Linux
+configuration documented and verified for this binding.
 
 `hikepack` places external static libraries in separate `.syso` files, keeping
 them separate from Hike-generated files when passing them to Go. Before
@@ -212,6 +256,44 @@ For example:
 ```text
 bin/slint-bundler <slint-directory> -o appbundle.slint
 ```
+
+## Building on Windows amd64
+
+Install Go, Git LFS, GNU Make, Hike (`hikec`), and `hikepack`. For the external
+Go link, install the MSYS2 UCRT64 LLVM toolchain, including Clang and LLD. Make
+sure `hikec`, `hikepack`, `make`, and the UCRT64 tools are available from the
+shell's `PATH`.
+
+After cloning or updating the repository, fetch the native libraries managed by
+Git LFS. In PowerShell, set `CC` to the UCRT64 Clang executable and build the
+Hello example:
+
+```powershell
+git lfs install
+git lfs pull
+
+$env:CC = "C:\msys64\ucrt64\bin\clang.exe"
+$env:CGO_ENABLED = "1"
+
+make syso-windows-amd64
+make -C examples/hello build
+```
+
+The first command runs `hikepack syso -v -target windows .`, which reads the
+Windows linker configuration from `hike.mod`, generates the Hike bridge, and
+packages the Windows static archive. The Hello Makefile runs this native step
+automatically, so the explicit `make syso-windows-amd64` is optional when
+building Hello. To launch the sample, run `make -C examples/hello run`.
+
+If Hike tools are not on `PATH`, pass their full paths to Make:
+
+```powershell
+make HIKEC="C:/path/to/hikec.exe" HIKEPACK="C:/path/to/hikepack.exe" syso-windows-amd64
+```
+
+The Makefiles use POSIX utilities such as `rm` and `mkdir`; run them from an
+MSYS2/UCRT64 shell or another environment that provides GNU Make and these
+utilities. The native target currently supports Windows amd64.
 
 ## Rebuilding SlintCFlat for Windows GNU LLVM
 
