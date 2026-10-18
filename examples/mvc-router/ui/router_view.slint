@@ -1,0 +1,14 @@
+import { AppRouter } from "router.slint";
+import { HomePage } from "pages/home_page.slint";
+import { FilesPage } from "pages/files_page.slint";
+import { SettingsPage } from "pages/settings_page.slint";
+
+export component RouterView inherits Rectangle {
+    in-out property <string> files <=> files_page.files;
+
+    if AppRouter.current_page == "Home": HomePage {}
+    files_page := FilesPage {
+        visible: AppRouter.current_page == "Files";
+    }
+    if AppRouter.current_page == "Settings": SettingsPage {}
+}

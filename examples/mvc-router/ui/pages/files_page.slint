@@ -1,0 +1,21 @@
+import { Button, VerticalBox } from "std-widgets.slint";
+import { AppRouter } from "../router.slint";
+
+export component FilesPage inherits VerticalBox {
+    in-out property <string> files: "";
+    padding: 20px;
+    spacing: 10px;
+
+    Text {
+        text: "カレントディレクトリのファイル一覧";
+        font-size: 20px;
+    }
+    Text {
+        text: root.files;
+        vertical-alignment: top;
+    }
+    Button {
+        text: "ホームへ戻る";
+        clicked => { AppRouter.current_page = "Home"; }
+    }
+}

@@ -1,0 +1,56 @@
+package cflat
+
+// SlintCFlat declarations. Pointer arguments are deliberately used for the
+// opaque C handles and caller-owned buffers, keeping the generated object
+// independent of cgo and the C runtime.
+extern func slint_c_create(code cstring) *byte
+extern func slint_c_free(ctx *byte)
+extern func slint_c_is_running(ctx *byte) bool
+extern func slint_c_get_last_error_code() int
+extern func slint_c_get_last_error() cstring
+extern func slint_c_clear_error()
+extern func slint_c_open_file_dialog(ctx *byte, outPath *byte, capacity int) bool
+extern func slint_c_post_message(ctx *byte, msg int, wparam int, lparam int) bool
+extern func slint_c_send_message(ctx *byte, msg int, wparam int, lparam int) int
+extern func slint_c_poll_event(ctx *byte, event *byte) bool
+extern func slint_c_dispatch_event(ctx *byte, event *byte) bool
+extern func slint_c_poll_callback(ctx *byte, event *byte) bool
+extern func slint_c_set_property(ctx *byte, name cstring, value *byte) bool
+extern func slint_c_set_global_property(ctx *byte, global cstring, name cstring, value *byte) bool
+extern func slint_c_set_property_value(ctx *byte, name cstring, value *byte) bool
+extern func slint_c_set_global_property_value(ctx *byte, global cstring, name cstring, value *byte) bool
+extern func slint_c_image_load_from_file(filename cstring) *byte
+extern func slint_c_value_new_string(value cstring) *byte
+extern func slint_c_value_new_bool(value bool) *byte
+extern func slint_c_value_new_number(value float64) *byte
+extern func slint_c_value_new_integer(value int) *byte
+extern func slint_c_value_new_float(value float32) *byte
+extern func slint_c_value_new_array(elementType int) *byte
+extern func slint_c_value_array_append(array *byte, elementType int, element *byte) bool
+extern func slint_c_value_free(value *byte)
+
+cfunc Create(code cstring) *byte = slint_c_create
+cfunc Free(ctx *byte) = slint_c_free
+cfunc IsRunning(ctx *byte) bool = slint_c_is_running
+cfunc LastErrorCode() int = slint_c_get_last_error_code
+cfunc LastError() cstring = slint_c_get_last_error
+cfunc ClearError() = slint_c_clear_error
+cfunc OpenFileDialog(ctx *byte, outPath *byte, capacity int) bool = slint_c_open_file_dialog
+cfunc PostMessage(ctx *byte, msg int, wparam int, lparam int) bool = slint_c_post_message
+cfunc SendMessage(ctx *byte, msg int, wparam int, lparam int) int = slint_c_send_message
+cfunc PollEvent(ctx *byte, event *byte) bool = slint_c_poll_event
+cfunc DispatchEvent(ctx *byte, event *byte) bool = slint_c_dispatch_event
+cfunc PollCallback(ctx *byte, event *byte) bool = slint_c_poll_callback
+cfunc SetProperty(ctx *byte, name cstring, value *byte) bool = slint_c_set_property
+cfunc SetGlobalProperty(ctx *byte, global cstring, name cstring, value *byte) bool = slint_c_set_global_property
+cfunc SetPropertyValue(ctx *byte, name cstring, value *byte) bool = slint_c_set_property_value
+cfunc SetGlobalPropertyValue(ctx *byte, global cstring, name cstring, value *byte) bool = slint_c_set_global_property_value
+cfunc ImageLoadFromFile(filename cstring) *byte = slint_c_image_load_from_file
+cfunc ValueNewString(value cstring) *byte = slint_c_value_new_string
+cfunc ValueNewBool(value bool) *byte = slint_c_value_new_bool
+cfunc ValueNewNumber(value float64) *byte = slint_c_value_new_number
+cfunc ValueNewInteger(value int) *byte = slint_c_value_new_integer
+cfunc ValueNewFloat(value float32) *byte = slint_c_value_new_float
+cfunc ValueNewArray(elementType int) *byte = slint_c_value_new_array
+cfunc ValueArrayAppend(array *byte, elementType int, element *byte) bool = slint_c_value_array_append
+cfunc ValueFree(value *byte) = slint_c_value_free

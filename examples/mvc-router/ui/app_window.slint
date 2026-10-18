@@ -1,0 +1,11 @@
+import { AppRouter } from "router.slint";
+import { RouterView } from "router_view.slint";
+
+export component AppWindow inherits Window {
+    title: "Slint MVC Router";
+    min-width: 520px;
+    min-height: 360px;
+
+    in-out property <string> files <=> router.files;
+    router := RouterView {}
+}

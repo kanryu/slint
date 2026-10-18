@@ -1,0 +1,23 @@
+import { Button, VerticalBox } from "std-widgets.slint";
+import { AppRouter } from "../router.slint";
+
+export component HomePage inherits VerticalBox {
+    padding: 20px;
+    spacing: 12px;
+
+    Text {
+        text: "MVC Router サンプル";
+        font-size: 24px;
+    }
+    Text {
+        text: "SlintBundlerで結合したUIを起動時に読み込んでいます。";
+    }
+    Button {
+        text: "カレントディレクトリのファイル一覧";
+        clicked => { AppRouter.current_page = "Files"; }
+    }
+    Button {
+        text: "設定ページへ";
+        clicked => { AppRouter.current_page = "Settings"; }
+    }
+}

@@ -1,0 +1,87 @@
+import { Button, VerticalBox } from "std-widgets.slint";
+
+// --- router.slint ---
+export global AppRouter {
+    in-out property <string> current_page: "Home";
+}
+
+// --- pages/files_page.slint ---
+export component FilesPage inherits VerticalBox {
+    in-out property <string> files: "";
+    padding: 20px;
+    spacing: 10px;
+
+    Text {
+        text: "カレントディレクトリのファイル一覧";
+        font-size: 20px;
+    }
+    Text {
+        text: root.files;
+        vertical-alignment: top;
+    }
+    Button {
+        text: "ホームへ戻る";
+        clicked => { AppRouter.current_page = "Home"; }
+    }
+}
+
+// --- pages/home_page.slint ---
+export component HomePage inherits VerticalBox {
+    padding: 20px;
+    spacing: 12px;
+
+    Text {
+        text: "MVC Router サンプル";
+        font-size: 24px;
+    }
+    Text {
+        text: "SlintBundlerで結合したUIを起動時に読み込んでいます。";
+    }
+    Button {
+        text: "カレントディレクトリのファイル一覧";
+        clicked => { AppRouter.current_page = "Files"; }
+    }
+    Button {
+        text: "設定ページへ";
+        clicked => { AppRouter.current_page = "Settings"; }
+    }
+}
+
+// --- pages/settings_page.slint ---
+export component SettingsPage inherits VerticalBox {
+    padding: 20px;
+    spacing: 12px;
+
+    Text {
+        text: "設定ページ";
+        font-size: 24px;
+    }
+    Text {
+        text: "ここがMVC構成の別ページです。";
+    }
+    Button {
+        text: "ホームへ戻る";
+        clicked => { AppRouter.current_page = "Home"; }
+    }
+}
+
+// --- router_view.slint ---
+export component RouterView inherits Rectangle {
+    in-out property <string> files <=> files_page.files;
+
+    if AppRouter.current_page == "Home": HomePage {}
+    files_page := FilesPage {
+        visible: AppRouter.current_page == "Files";
+    }
+    if AppRouter.current_page == "Settings": SettingsPage {}
+}
+
+// --- app_window.slint ---
+export component AppWindow inherits Window {
+    title: "Slint MVC Router";
+    min-width: 520px;
+    min-height: 360px;
+
+    in-out property <string> files <=> router.files;
+    router := RouterView {}
+}

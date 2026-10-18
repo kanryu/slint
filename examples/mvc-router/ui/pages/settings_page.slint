@@ -1,0 +1,19 @@
+import { Button, VerticalBox } from "std-widgets.slint";
+import { AppRouter } from "../router.slint";
+
+export component SettingsPage inherits VerticalBox {
+    padding: 20px;
+    spacing: 12px;
+
+    Text {
+        text: "設定ページ";
+        font-size: 24px;
+    }
+    Text {
+        text: "ここがMVC構成の別ページです。";
+    }
+    Button {
+        text: "ホームへ戻る";
+        clicked => { AppRouter.current_page = "Home"; }
+    }
+}
