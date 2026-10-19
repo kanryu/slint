@@ -251,6 +251,26 @@ The SlintBinder command is implemented in Go. Build it with:
 make slint-bundler
 ```
 
+With Go 1.24 or later, register the GitHub module as a tool dependency with:
+
+```text
+go get -tool github.com/kanryu/slint/cmd/slint-bundler@latest
+```
+
+Then build and run the tool with:
+
+```text
+go tool slint-bundler
+```
+
+The `go get -tool` command records the tool in `go.mod`; `go tool` builds it
+from the recorded module dependency when it runs. If you want to install a
+standalone executable in Go's standard binary directory instead, use:
+
+```text
+go install github.com/kanryu/slint/cmd/slint-bundler@latest
+```
+
 For example:
 
 ```text
