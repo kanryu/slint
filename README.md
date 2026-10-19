@@ -12,8 +12,7 @@ Instead, fetch the module directly with Git LFS and use it as a local module:
 
 ```bash
 git lfs install
-git clone https://github.com/kanryu/slint.git third_party/slint
-git -C third_party/slint checkout v0.1.1
+git clone --depth 1 --branch v0.1.1 --single-branch https://github.com/kanryu/slint.git third_party/slint
 git -C third_party/slint lfs pull
 
 go mod edit -replace github.com/kanryu/slint=./third_party/slint
