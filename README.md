@@ -1,5 +1,41 @@
 # SlintCFlat Hike/Go Binding
 
+## Important: install the Slint module locally with Git LFS
+
+Do not install this module with the usual `go get` workflow. Go may fetch the
+repository through the module proxy without downloading the large Git LFS
+objects, leaving files such as `cflat_windows_amd64.syso` as LFS pointers.
+`GOPROXY=direct` alone is not sufficient because Go still fetches the Git
+repository rather than the GitHub Release ZIP.
+
+Instead, fetch the module directly with Git LFS and use it as a local module:
+
+```bash
+git lfs install
+git clone https://github.com/kanryu/slint.git third_party/slint
+git -C third_party/slint checkout v0.1.1
+git -C third_party/slint lfs pull
+
+go mod edit -replace github.com/kanryu/slint=./third_party/slint
+go mod tidy
+go build ./...
+```
+
+This bypasses `proxy.golang.org` and ensures that the native
+`cflat_windows_amd64.syso` file is available as a real binary. Verify the
+module selection with:
+
+```text
+go list -m all
+```
+
+The output should include the following line, confirming that the local module
+is being used:
+
+```text
+github.com/kanryu/slint => ./third_party/slint
+```
+
 ## What is Slint?
 
 Slint is a modern, general-purpose GUI framework for building user interfaces
