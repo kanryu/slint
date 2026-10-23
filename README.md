@@ -1,4 +1,4 @@
-# Slint Language Binding
+# Slint UI Engine for Go Binding
 
 ## Important: install the Slint module locally with Git LFS
 
