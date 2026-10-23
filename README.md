@@ -1,4 +1,4 @@
-# SlintCFlat Hike/Go Binding
+# Slint Language Binding
 
 ## Important: install the Slint module locally with Git LFS
 
@@ -7,6 +7,16 @@ repository through the module proxy without downloading the large Git LFS
 objects, leaving files such as `cflat_windows_amd64.syso` as LFS pointers.
 `GOPROXY=direct` alone is not sufficient because Go still fetches the Git
 repository rather than the GitHub Release ZIP.
+
+If you already have [Go-GetLFS](https://github.com/kanryu/goget-lfs)
+installed, this single command is sufficient:
+
+```bash
+goget-lfs github.com/kanryu/slint@v0.1.1
+```
+
+No additional Git, Git LFS, or `go mod` commands are required when using
+Go-GetLFS.
 
 Instead, fetch the module directly with Git LFS and use it as a local module:
 
@@ -69,54 +79,129 @@ expressions, and use configurable rendering backends. It also provides an
 interpreter, which is the mode used by this binding: the application supplies
 the Slint source at startup and the Slint runtime creates the UI from it.
 
-For Hike language programs, this project provides the binding needed to use
-that runtime. The binding does not replace the Slint language. Instead, it
-helps an application collect multiple `.slint` files,
-combine them into one deterministic source file, embed that source in the
-executable as a Go string, and pass it to `slint.New` when the application
-starts.
+Slint provides two ways to use Slint markup. In compiler mode, the markup is
+compiled directly into code for the target programming language. In
+interpreter mode, the application loads the Slint markup at runtime and the
+Slint engine interprets it and renders the GUI.
 
-The Hike compiler is a build-time tool in this architecture. It generates the
-native `.syso` objects, Go declarations, and assembly stubs required by the
-binding; it is not a runtime dependency that changes what Slint is or how the
-application's UI is described.
+The Slint compiler currently supports direct code generation for Rust and C++.
+Other languages, including Go, use the Slint interpreter instead. This
+package provides the Go interface for creating a Slint interpreter context,
+loading Slint markup, setting properties, processing events, and rendering the
+GUI.
 
-The typical flow is:
-
-```text
-individual .slint files
-        │
-        ├─ slint-bundler
-        ▼
-one bundled .slint source
-        │
-        ├─ go:embed
-        ▼
-embedded string in the executable
-        │
-        └─ slint.New(source)
-        ▼
-Slint interpreter and native window
-```
-
-This makes it possible to organize a larger UI into reusable pages and
-components while still shipping one self-contained Hike/Go application.
-
-This module provides a Hike language binding for the SlintCFlat API. Its native
-bridge is implemented with Hike `cfunc` declarations and generated Go
-declarations/assembly stubs. The binding API does not expose cgo. Windows
-amd64 packages its Rust static archive as a `.syso`; Linux amd64 links
-`deps/slint-cflat-linux-amd64/libslint_cflat.a` copied into its Linux
-`internal/cflat_native` package under the platform `.syso` name.
-
-The public API is in the root package, while the Hike bridge for the SlintCFlat
-ABI is in `internal/cflat`. The Hike source is
-`internal/cflat/cflat.go.hike`.
+The following is the `main` function from `examples/hello`, showing the basic
+interpreter usage:
 
 ```go
-app, err := slint.New(`export component App inherits Window {}`)
-if err != nil { panic(err) }
-defer app.Close()
+func main() {
+	// Slint's host-side event pump must stay on one OS thread.  In
+	// particular, do not let the Go scheduler move the callback/event
+	// handling loop between native threads.
+	runtime.LockOSThread()
+
+	app, err := slint.New(`
+export component App inherits Window {
+    width: 320px;
+    height: 180px;
+    in-out property <string> message: "Slint from Go";
+
+    Text {
+        text: message;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+`)
+	if err != nil {
+		panic(err)
+	}
+	defer app.Close()
+	if err := app.SetStringProperty("message", "SlintCFlat + Go"); err != nil {
+		panic(err)
+	}
+	fmt.Println("Slint context created; running:", app.IsRunning())
+
+	for app.IsRunning() {
+		for {
+			event, ok, err := app.PollEvent()
+			if err != nil {
+				panic(err)
+			}
+			if !ok {
+				break
+			}
+			if err := app.DispatchEvent(event); err != nil {
+				panic(err)
+			}
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+```
+
+## SlintBinder
+
+This project provides SlintBinder as the `slint-bundler` command. It takes a
+directory containing Slint files as input, follows their imports, and writes
+one deterministic `.slint` file as output. For example:
+
+```text
+slint-bundler ui -o generated/ui_bundle.slint
+```
+
+Slint UI is often easier to maintain as multiple files under a `ui` directory:
+a router, a window component, reusable widgets, and page components. SlintBinder
+recursively reads that directory, resolves the imports between the files, and
+combines them into the output file.
+
+### Why bundle Slint files?
+
+Slint markup uses a syntax familiar to Node.js developers and supports imports
+between modules. Slint markup is normally organized across multiple files and
+nested directories in the project tree. This structure is also useful when
+checking the design in the Slint Viewer extension for VS Code.
+
+However, that project structure is inconvenient when the UI is bundled into a
+Go executable. The Slint interpreter used by the Go application can process
+the UI more simply and quickly when all Slint markup is combined into one
+source file and supplied as a string.
+
+The application can then embed the generated file and give its contents to the
+Slint interpreter at startup. This keeps the UI organized as a normal folder
+tree during development while allowing the final Go application to carry one
+self-contained Slint source string.
+
+The SlintBinder command is implemented in Go. Build it with:
+
+```text
+make slint-bundler
+```
+
+With Go 1.24 or later, register the GitHub module as a tool dependency with:
+
+```text
+go get -tool github.com/kanryu/slint/cmd/slint-bundler@latest
+```
+
+Then build and run the tool with:
+
+```text
+go tool slint-bundler
+```
+
+The `go get -tool` command records the tool in `go.mod`; `go tool` builds it
+from the recorded module dependency when it runs. If you want to install a
+standalone executable in Go's standard binary directory instead, use:
+
+```text
+go install github.com/kanryu/slint/cmd/slint-bundler@latest
+```
+
+For example:
+
+```text
+bin/slint-bundler <slint-directory> -o appbundle.slint
 ```
 
 The `examples/hello` sample and the Makefile are in the project root. To
@@ -268,49 +353,6 @@ Hike owns the ABI bridge and Go stubs, while `hikepack` owns native archive
 packaging. The Makefile invokes `hikepack syso` for each supported target and
 therefore should not repeat the old `clang -r <hike-object> <library>.a`
 step.
-
-For Go programmers using this binding, the project includes SlintBinder, the
-`slint-bundler` command. Slint UI is often easier to maintain as multiple files
-under a `ui` directory: a router, a window component, reusable widgets, and
-page components. SlintBinder reads that directory, resolves the imports between
-the files, and writes one deterministic `.slint` source file.
-
-The application can then embed the generated file and give its contents to the
-Slint interpreter at startup. This keeps the UI organized as a normal folder
-tree during development while allowing the final Go application to carry one
-self-contained Slint source string.
-
-The SlintBinder command is implemented in Go. Build it with:
-
-```text
-make slint-bundler
-```
-
-With Go 1.24 or later, register the GitHub module as a tool dependency with:
-
-```text
-go get -tool github.com/kanryu/slint/cmd/slint-bundler@latest
-```
-
-Then build and run the tool with:
-
-```text
-go tool slint-bundler
-```
-
-The `go get -tool` command records the tool in `go.mod`; `go tool` builds it
-from the recorded module dependency when it runs. If you want to install a
-standalone executable in Go's standard binary directory instead, use:
-
-```text
-go install github.com/kanryu/slint/cmd/slint-bundler@latest
-```
-
-For example:
-
-```text
-bin/slint-bundler <slint-directory> -o appbundle.slint
-```
 
 ## Building on Windows amd64
 
